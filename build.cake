@@ -66,6 +66,7 @@ Task("Default")
 
 Task("Clean")
 .Description("Create and clean folders with results")
+
 .Does(() => {
    if(!DirectoryExists(artifactsFolder))
    {
@@ -91,12 +92,22 @@ Task("Restore-NuGet-Packages")
 Task("Build")
 .Description("Build solution")
 .Does(() => {
-   MSBuild(solution, settings =>
-      settings
-         .SetConfiguration(configuration)
-         .SetMSBuildPlatform(MSBuildPlatform.x86)
-         .SetVerbosity(Verbosity.Minimal)
-         .UseToolVersion(MSBuildToolVersion.VS2017));
+   if (IsRunningOnWindows())
+   {
+      // Use MSBuild in windows environment
+        MSBuild(solution, settings =>
+               settings.SetConfiguration(configuration)
+                       .SetMSBuildPlatform(MSBuildPlatform.x86)
+                       .SetVerbosity(Verbosity.Minimal)
+                       .UseToolVersion(MSBuildToolVersion.VS2017));
+   }
+   else
+   {
+        // Use XBuild in linux environment
+        XBuild("./src/Example.sln", settings => 
+              settings.SetConfiguration(configuration));
+   }
+  
 });
 
 Task("Run-Tests")
@@ -159,16 +170,16 @@ Task("Analyse-Test-Coverage")
       TeamCity.ImportData("mstest", testResultsFile);
    }
 
-   DotCoverReport(coverageResultFile,
-      System.IO.Path.Combine(temporaryFolder, "coverageResult.html"),
-      new DotCoverReportSettings {
-         ReportType = DotCoverReportType.HTML
-      });
+   // DotCoverReport(coverageResultFile,
+   //    System.IO.Path.Combine(temporaryFolder, "coverageResult.html"),
+   //    new DotCoverReportSettings {
+   //       ReportType = DotCoverReportType.HTML
+   //    });
 
-   if(TeamCity.IsRunningOnTeamCity)
-   {
-      TeamCity.ImportDotCoverCoverage(coverageResultFile);
-   }
+   // if(TeamCity.IsRunningOnTeamCity)
+   // {
+   //    TeamCity.ImportDotCoverCoverage(coverageResultFile);
+   // }
 });
 
 Task("Create-NuGet-Package")
